@@ -75,6 +75,20 @@ function mergeTilesets(options) {
     });
 }
 
+function createBox(box, transform) {
+    var center = Cartesian3.fromElements(box[0], box[1], box[2]);
+    var halfAxes = Matrix3.fromArray(box, 3);
+
+    // Find the transformed center and halfAxes
+    center = Matrix4.multiplyByPoint(transform, center, center);
+    var centerArray = new Array(3);
+    Cartesian3.pack(center, centerArray);
+    var rotationScale = Matrix4.getRotation(transform, new Matrix3());
+    halfAxes = Matrix3.multiply(rotationScale, halfAxes, halfAxes);
+    var halfAxesArray = Matrix3.toArray(halfAxes)
+    return centerArray.concat(halfAxesArray)
+}
+
 function getChildren(tilesets, tilesetPaths) {
     var length = tilesets.length;
     var children = new Array(length);
@@ -83,9 +97,12 @@ function getChildren(tilesets, tilesetPaths) {
         tilesetUrl = tilesetUrl.replace(/\\/g, '/'); // Use forward slashes in the JSON
 
         children[i] = tilesets[i].root;
+        var boundingVolume = children[i].boundingVolume;
+        children[i].boundingVolume.box = createBox(children[i].boundingVolume.box, children[i].transform)
         children[i].content = {
             url : tilesetUrl
         };
+        delete children[i].transform;
         delete children[i].children;
     }
     return children;
